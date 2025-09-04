@@ -21,6 +21,8 @@
     text-decoration: none;
     font-size: 2rem;
     margin-left: 24px;
+    font-family: 'Kanit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    font-weight: 400;
     @extend %align-center;
   }
 
@@ -53,6 +55,7 @@
       justify-content: center;
       text-decoration: none;
       padding: 0 1rem;
+      font-weight: 500;
 
       &:hover {
         color: $lime;
@@ -68,6 +71,7 @@
       background: $lime;
       margin-left: 16px;
       color: $light;
+      font-weight: 600;
 
       &:hover {
         background: $orangeRed;

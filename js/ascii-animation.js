@@ -4,7 +4,7 @@ class ASCIIAnimation {
     this.ctx = this.canvas.getContext('2d');
     this.imagePath = imagePath;
     this.image = new Image();
-    this.asciiChars = '@%#*+=-:dqfi?¿¢ ';
+    this.asciiChars = '@%#*+=-:i?¿ ';
     this.animationPhase = 0;
     this.frameCount = 0;
     this.pixelSize = 13;

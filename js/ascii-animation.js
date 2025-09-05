@@ -7,7 +7,7 @@ class ASCIIAnimation {
     this.asciiChars = '@%#*+=-:i?¿ ';
     this.animationPhase = 0;
     this.frameCount = 0;
-    this.pixelSize = 13;
+    this.pixelSize = 11;
     this.asciiArray = [];
     this.asciiWriteProgress = 0;
     this.disappearProgress = 0;
@@ -16,7 +16,6 @@ class ASCIIAnimation {
     this.isImageLoaded = false;
     this.isProcessed = false;
     
-    // Phase durations (in frames at 60fps)
     this.phaseDurations = {
       original: 120,       // 2 seconds original image
       asciiWrite: 300,     // 5 seconds ASCII writing
@@ -41,7 +40,7 @@ class ASCIIAnimation {
   }
 
   loadImage() {
-    this.image.crossOrigin = 'anonymous'; // Handle CORS if needed
+    this.image.crossOrigin = 'anonymous'; 
     this.image.onload = () => {
       console.log(`Image loaded: ${this.image.width}x${this.image.height}`);
       this.isImageLoaded = true;
@@ -50,25 +49,22 @@ class ASCIIAnimation {
     };
     this.image.onerror = (error) => {
       console.error('Failed to load image:', error);
-      // Create a fallback colored rectangle
+      // fallback colored rectangle
       this.createFallbackImage();
     };
     this.image.src = this.imagePath;
   }
 
   createFallbackImage() {
-    // Create a simple gradient as fallback
     this.ctx.fillStyle = '#f7f7f7';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
     const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
     gradient.addColorStop(0, '#8500cc');
     gradient.addColorStop(1, '#fb4b4e');
-    
+
     this.ctx.fillStyle = gradient;
     this.ctx.fillRect(100, 100, this.canvas.width - 200, this.canvas.height - 200);
-    
-    // Convert canvas to image for processing
     this.image.src = this.canvas.toDataURL();
   }
 
@@ -89,17 +85,13 @@ class ASCIIAnimation {
       
       tempCanvas.width = cols;
       tempCanvas.height = rows;
-      
-      // Draw image to temp canvas
       tempCtx.drawImage(this.image, 0, 0, cols, rows);
-      
-      // Get pixel data
       const imageData = tempCtx.getImageData(0, 0, cols, rows);
       const data = imageData.data;
       
       console.log(`Image data length: ${data.length}, expected: ${cols * rows * 4}`);
       
-      // Clear and rebuild the array
+      // Clear and rebuild array
       this.asciiArray = [];
       
       for (let y = 0; y < rows; y++) {
@@ -238,7 +230,7 @@ class ASCIIAnimation {
     
     console.log(`Drawing ${pixelsToShow} of ${totalPixels} pixels`);
     
-    // Draw pixels in a simple pattern to avoid index issues
+    // pixels simple pattern
     for (let i = 0; i < pixelsToShow && i < totalPixels; i++) {
       const pixel = this.asciiArray[i];
       
@@ -257,7 +249,7 @@ class ASCIIAnimation {
     this.ctx.fillStyle = '#f7f7f7';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
-    // Draw pixelated version with decreasing opacity
+    // pixelated version
     const pixelAlpha = 1 - this.backToHQProgress;
     this.ctx.globalAlpha = pixelAlpha;
     
@@ -266,7 +258,7 @@ class ASCIIAnimation {
       this.ctx.fillRect(pixel.x, pixel.y, this.pixelSize, this.pixelSize);
     });
     
-    // Draw high quality image with increasing opacity
+    // Back to high quality image
     this.ctx.globalAlpha = this.backToHQProgress;
     this.ctx.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
     this.ctx.globalAlpha = 1;
@@ -290,7 +282,6 @@ class ASCIIAnimation {
   }
 
   animate() {
-    // Don't animate until image is processed
     if (!this.isImageLoaded) {
       requestAnimationFrame(() => this.animate());
       return;
@@ -299,11 +290,11 @@ class ASCIIAnimation {
     const { phase, localFrame } = this.getCurrentPhase();
     
     switch (phase) {
-      case 0: // Original image
+      case 0: // Original 
         this.drawOriginalImage();
         break;
         
-      case 1: // ASCII writing progressively
+      case 1: // ASCII writing 
         if (this.asciiWriteProgress >= 1) {
           this.asciiWriteProgress = 1;
         }
@@ -321,7 +312,7 @@ class ASCIIAnimation {
         this.drawDisappearing();
         break;
         
-      case 4: // Pixel appearance
+      case 4: // Pixel 
         if (this.pixelProgress >= 1) {
           this.pixelProgress = 1;
         }
@@ -338,7 +329,7 @@ class ASCIIAnimation {
     
     this.frameCount++;
     
-    // Reset animation when complete
+    // Reset animation 
     const totalDuration = Object.values(this.phaseDurations).reduce((a, b) => a + b, 0);
     if (this.frameCount >= totalDuration) {
       console.log("Resetting animation loop");
@@ -359,7 +350,7 @@ class ASCIIAnimation {
   }
 }
 
-// Initialize animation when DOM is loaded
+// Animation 
 document.addEventListener('DOMContentLoaded', () => {
   new ASCIIAnimation('ascii-canvas', 'imgs/kuka.jpg');
 });

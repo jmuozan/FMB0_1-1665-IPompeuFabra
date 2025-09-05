@@ -116,23 +116,103 @@
 
     &--right {
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     &--img {
       height: 100%;
       width: 100%;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       
-      // Canvas specific styles
+      // Canvas specific styles - removed box-shadow, border-radius, and border
       &[id="ascii-canvas"] {
         background-color: $light;
-        border: 2px solid rgba(133, 0, 204, 0.1);
-        transition: all 0.3s ease;
-        
-        &:hover {
-          box-shadow: 0 6px 30px rgba(133, 0, 204, 0.2);
-        }
+      }
+    }
+  }
+}
+
+// Image footnote
+.image-footnote {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: $dark;
+  opacity: 0.7;
+  
+  a {
+    color: $lime;
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Footer Section CSS
+.footer {
+  background-color: $light;
+  padding: 2rem 0;
+  border-top: 1px solid rgba(34, 33, 33, 0.1);
+
+  &__container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+
+    @include tablet {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+  }
+
+  &__left {
+    flex: 1;
+  }
+
+  &__copyright {
+    color: $dark;
+    font-size: 0.9rem;
+    line-height: 1.4;
+
+    a {
+      color: $lime;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+  }
+
+  &__social {
+    display: flex;
+    gap: 1rem;
+
+    &--link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      color: $lime;
+      text-decoration: none;
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: $orangeRed;
+        transform: translateY(-2px);
       }
     }
   }

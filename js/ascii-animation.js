@@ -5,97 +5,188 @@ class ASCIIAnimation {
     this.imagePath = imagePath;
     this.image = new Image();
     this.asciiChars = '@%#*+=-:. ';
-    this.animationPhase = 0; // 0: original, 1: ascii, 2: disappear, 3: pixels
-    this.animationSpeed = 60; // frames per second
+    this.animationPhase = 0;
     this.frameCount = 0;
     this.pixelSize = 8;
     this.asciiArray = [];
-    this.pixelData = [];
+    this.asciiWriteProgress = 0;
     this.disappearProgress = 0;
     this.pixelProgress = 0;
+    this.backToHQProgress = 0;
+    this.isImageLoaded = false;
+    this.isProcessed = false;
+    
+    // Phase durations (in frames at 60fps)
+    this.phaseDurations = {
+      original: 120,       // 2 seconds original image
+      asciiWrite: 300,     // 5 seconds ASCII writing
+      ascii: 120,          // 2 seconds full ASCII
+      disappear: 180,      // 3 seconds disappearing
+      pixels: 240,         // 4 seconds pixel appearance
+      backToHQ: 180        // 3 seconds back to high quality
+    };
     
     this.setupCanvas();
     this.loadImage();
   }
 
   setupCanvas() {
-    this.canvas.width = 600;
-    this.canvas.height = 400;
-    this.canvas.style.maxWidth = '100%';
-    this.canvas.style.height = 'auto';
+    this.canvas.width = 1000;
+    this.canvas.height = 700;
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
+    this.canvas.style.display = 'block';
+    this.canvas.style.margin = '0';
+    this.canvas.style.padding = '0';
   }
 
   loadImage() {
+    this.image.crossOrigin = 'anonymous'; // Handle CORS if needed
     this.image.onload = () => {
+      console.log(`Image loaded: ${this.image.width}x${this.image.height}`);
+      this.isImageLoaded = true;
       this.processImage();
       this.startAnimation();
+    };
+    this.image.onerror = (error) => {
+      console.error('Failed to load image:', error);
+      // Create a fallback colored rectangle
+      this.createFallbackImage();
     };
     this.image.src = this.imagePath;
   }
 
+  createFallbackImage() {
+    // Create a simple gradient as fallback
+    this.ctx.fillStyle = '#f7f7f7';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, this.canvas.height);
+    gradient.addColorStop(0, '#8500cc');
+    gradient.addColorStop(1, '#fb4b4e');
+    
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(100, 100, this.canvas.width - 200, this.canvas.height - 200);
+    
+    // Convert canvas to image for processing
+    this.image.src = this.canvas.toDataURL();
+  }
+
   processImage() {
-    // Create a temporary canvas to process the image
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Set dimensions based on pixel size for ASCII
-    const cols = Math.floor(this.canvas.width / this.pixelSize);
-    const rows = Math.floor(this.canvas.height / this.pixelSize);
-    
-    tempCanvas.width = cols;
-    tempCanvas.height = rows;
-    
-    // Draw and scale down the image
-    tempCtx.drawImage(this.image, 0, 0, cols, rows);
-    
-    // Get pixel data
-    const imageData = tempCtx.getImageData(0, 0, cols, rows);
-    const data = imageData.data;
-    
-    // Process pixels for ASCII and pixel animation
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const a = data[i + 3];
+    if (!this.isImageLoaded) {
+      console.log('Image not loaded yet, skipping processing');
+      return;
+    }
+
+    try {
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
       
-      // Calculate brightness for ASCII
-      const brightness = (r + g + b) / 3;
-      const charIndex = Math.floor((brightness / 255) * (this.asciiChars.length - 1));
-      const asciiChar = this.asciiChars[this.asciiChars.length - 1 - charIndex];
+      const cols = Math.floor(this.canvas.width / this.pixelSize);
+      const rows = Math.floor(this.canvas.height / this.pixelSize);
       
-      // Store ASCII character and pixel info
-      const pixelIndex = i / 4;
-      const x = pixelIndex % cols;
-      const y = Math.floor(pixelIndex / cols);
+      console.log(`Processing grid: ${cols}x${rows} = ${cols * rows} pixels`);
       
-      this.asciiArray.push({
-        char: asciiChar,
-        x: x * this.pixelSize,
-        y: y * this.pixelSize,
-        brightness: brightness,
-        originalR: r,
-        originalG: g,
-        originalB: b,
-        alpha: a / 255
-      });
+      tempCanvas.width = cols;
+      tempCanvas.height = rows;
+      
+      // Draw image to temp canvas
+      tempCtx.drawImage(this.image, 0, 0, cols, rows);
+      
+      // Get pixel data
+      const imageData = tempCtx.getImageData(0, 0, cols, rows);
+      const data = imageData.data;
+      
+      console.log(`Image data length: ${data.length}, expected: ${cols * rows * 4}`);
+      
+      // Clear and rebuild the array
+      this.asciiArray = [];
+      
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const index = (y * cols + x) * 4;
+          
+          if (index + 3 < data.length) {
+            const r = data[index] || 0;
+            const g = data[index + 1] || 0;
+            const b = data[index + 2] || 0;
+            const a = data[index + 3] || 255;
+            
+            const brightness = (r + g + b) / 3;
+            const charIndex = Math.floor((brightness / 255) * (this.asciiChars.length - 1));
+            const asciiChar = this.asciiChars[this.asciiChars.length - 1 - charIndex] || ' ';
+            
+            this.asciiArray.push({
+              char: asciiChar,
+              x: x * this.pixelSize,
+              y: y * this.pixelSize,
+              brightness: brightness,
+              originalR: r,
+              originalG: g,
+              originalB: b,
+              alpha: a / 255,
+              gridX: x,
+              gridY: y
+            });
+          }
+        }
+      }
+      
+      console.log(`Successfully processed ${this.asciiArray.length} pixels`);
+      this.isProcessed = true;
+      
+    } catch (error) {
+      console.error('Error processing image:', error);
+      this.isProcessed = false;
     }
   }
 
   drawOriginalImage() {
+    if (!this.isImageLoaded) return;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
   }
 
-  drawASCII() {
+  drawASCIIWriting() {
+    if (!this.isProcessed || this.asciiArray.length === 0) {
+      console.log('ASCII array not ready for writing');
+      return;
+    }
+    
     this.ctx.fillStyle = '#f7f7f7';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
-    this.ctx.font = `${this.pixelSize}px monospace`;
+    this.ctx.font = `${this.pixelSize + 2}px monospace`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    
+    const charsToShow = Math.floor(this.asciiArray.length * this.asciiWriteProgress);
+    
+    for (let i = 0; i < charsToShow && i < this.asciiArray.length; i++) {
+      const pixel = this.asciiArray[i];
+      
+      this.ctx.fillStyle = `rgb(${pixel.originalR}, ${pixel.originalG}, ${pixel.originalB})`;
+      this.ctx.fillText(
+        pixel.char,
+        pixel.x + this.pixelSize / 2,
+        pixel.y + this.pixelSize / 2
+      );
+    }
+    
+    this.asciiWriteProgress += 0.003;
+  }
+
+  drawFullASCII() {
+    if (!this.isProcessed || this.asciiArray.length === 0) return;
+    
+    this.ctx.fillStyle = '#f7f7f7';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    this.ctx.font = `${this.pixelSize + 2}px monospace`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     
     this.asciiArray.forEach(pixel => {
-      // Color based on original pixel color
       this.ctx.fillStyle = `rgb(${pixel.originalR}, ${pixel.originalG}, ${pixel.originalB})`;
       this.ctx.fillText(
         pixel.char,
@@ -106,20 +197,21 @@ class ASCIIAnimation {
   }
 
   drawDisappearing() {
+    if (!this.isProcessed || this.asciiArray.length === 0) return;
+    
     this.ctx.fillStyle = '#f7f7f7';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
-    this.ctx.font = `${this.pixelSize}px monospace`;
+    this.ctx.font = `${this.pixelSize + 2}px monospace`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     
     this.asciiArray.forEach((pixel, index) => {
-      // Create a wave effect for disappearing
-      const waveOffset = Math.sin((index * 0.1) + (this.disappearProgress * 0.1)) * 50;
+      const waveOffset = Math.sin((index * 0.1) + (this.disappearProgress * 0.15)) * 30;
       const shouldShow = Math.random() > this.disappearProgress;
       
       if (shouldShow) {
-        const alpha = Math.max(0, 1 - this.disappearProgress + (Math.random() * 0.3 - 0.15));
+        const alpha = Math.max(0, 1 - this.disappearProgress + (Math.random() * 0.2 - 0.1));
         this.ctx.fillStyle = `rgba(${pixel.originalR}, ${pixel.originalG}, ${pixel.originalB}, ${alpha})`;
         this.ctx.fillText(
           pixel.char,
@@ -129,51 +221,134 @@ class ASCIIAnimation {
       }
     });
     
-    this.disappearProgress += 0.02;
+    this.disappearProgress += 0.008;
   }
 
   drawPixelAppearance() {
+    if (!this.isProcessed || this.asciiArray.length === 0) {
+      console.log('ASCII array not ready for pixel drawing');
+      return;
+    }
+    
     this.ctx.fillStyle = '#f7f7f7';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     
-    const numPixelsToShow = Math.floor(this.asciiArray.length * this.pixelProgress);
+    const totalPixels = this.asciiArray.length;
+    const pixelsToShow = Math.floor(totalPixels * this.pixelProgress);
     
-    // Shuffle pixels for random appearance
-    const shuffledIndices = Array.from({length: this.asciiArray.length}, (_, i) => i)
-      .sort(() => Math.random() - 0.5);
+    console.log(`Drawing ${pixelsToShow} of ${totalPixels} pixels`);
     
-    for (let i = 0; i < numPixelsToShow; i++) {
-      const pixelIndex = shuffledIndices[i];
-      const pixel = this.asciiArray[pixelIndex];
+    // Draw pixels in a simple pattern to avoid index issues
+    for (let i = 0; i < pixelsToShow && i < totalPixels; i++) {
+      const pixel = this.asciiArray[i];
       
-      this.ctx.fillStyle = `rgb(${pixel.originalR}, ${pixel.originalG}, ${pixel.originalB})`;
-      this.ctx.fillRect(pixel.x, pixel.y, this.pixelSize, this.pixelSize);
+      if (pixel) {
+        this.ctx.fillStyle = `rgb(${pixel.originalR}, ${pixel.originalG}, ${pixel.originalB})`;
+        this.ctx.fillRect(pixel.x, pixel.y, this.pixelSize, this.pixelSize);
+      }
     }
     
     this.pixelProgress += 0.005;
   }
 
+  drawBackToHQ() {
+    if (!this.isProcessed || this.asciiArray.length === 0 || !this.isImageLoaded) return;
+    
+    this.ctx.fillStyle = '#f7f7f7';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Draw pixelated version with decreasing opacity
+    const pixelAlpha = 1 - this.backToHQProgress;
+    this.ctx.globalAlpha = pixelAlpha;
+    
+    this.asciiArray.forEach(pixel => {
+      this.ctx.fillStyle = `rgb(${pixel.originalR}, ${pixel.originalG}, ${pixel.originalB})`;
+      this.ctx.fillRect(pixel.x, pixel.y, this.pixelSize, this.pixelSize);
+    });
+    
+    // Draw high quality image with increasing opacity
+    this.ctx.globalAlpha = this.backToHQProgress;
+    this.ctx.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.globalAlpha = 1;
+    
+    this.backToHQProgress += 0.012;
+  }
+
+  getCurrentPhase() {
+    let totalFrames = 0;
+    const phases = ['original', 'asciiWrite', 'ascii', 'disappear', 'pixels', 'backToHQ'];
+    
+    for (let i = 0; i < phases.length; i++) {
+      const phaseEnd = totalFrames + this.phaseDurations[phases[i]];
+      if (this.frameCount < phaseEnd) {
+        return { phase: i, localFrame: this.frameCount - totalFrames };
+      }
+      totalFrames = phaseEnd;
+    }
+    
+    return { phase: 0, localFrame: 0 };
+  }
+
   animate() {
+    // Don't animate until image is processed
+    if (!this.isImageLoaded) {
+      requestAnimationFrame(() => this.animate());
+      return;
+    }
+
+    const { phase, localFrame } = this.getCurrentPhase();
+    
+    switch (phase) {
+      case 0: // Original image
+        this.drawOriginalImage();
+        break;
+        
+      case 1: // ASCII writing progressively
+        if (this.asciiWriteProgress >= 1) {
+          this.asciiWriteProgress = 1;
+        }
+        this.drawASCIIWriting();
+        break;
+        
+      case 2: // Full ASCII
+        this.drawFullASCII();
+        break;
+        
+      case 3: // Disappearing
+        if (this.disappearProgress >= 1) {
+          this.disappearProgress = 1;
+        }
+        this.drawDisappearing();
+        break;
+        
+      case 4: // Pixel appearance
+        if (this.pixelProgress >= 1) {
+          this.pixelProgress = 1;
+        }
+        this.drawPixelAppearance();
+        break;
+        
+      case 5: // Back to high quality
+        if (this.backToHQProgress >= 1) {
+          this.backToHQProgress = 1;
+        }
+        this.drawBackToHQ();
+        break;
+    }
+    
     this.frameCount++;
     
-    // Phase transitions
-    if (this.frameCount < 120) { // 2 seconds at 60fps
-      this.animationPhase = 0;
-      this.drawOriginalImage();
-    } else if (this.frameCount < 300) { // 3 seconds ASCII
-      this.animationPhase = 1;
-      this.drawASCII();
-    } else if (this.frameCount < 480) { // 3 seconds disappearing
-      this.animationPhase = 2;
-      this.drawDisappearing();
-    } else if (this.frameCount < 720) { // 4 seconds pixel appearance
-      this.animationPhase = 3;
-      this.drawPixelAppearance();
-    } else {
-      // Reset animation
+    // Reset animation when complete
+    const totalDuration = Object.values(this.phaseDurations).reduce((a, b) => a + b, 0);
+    if (this.frameCount >= totalDuration) {
+      console.log("Resetting animation loop");
       this.frameCount = 0;
+      this.asciiWriteProgress = 0;
       this.disappearProgress = 0;
       this.pixelProgress = 0;
+      this.backToHQProgress = 0;
+      this.shuffledAsciiIndices = null;
+      this.shuffledPixelIndices = null;
     }
     
     requestAnimationFrame(() => this.animate());

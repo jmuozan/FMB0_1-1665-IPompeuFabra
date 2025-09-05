@@ -4,10 +4,10 @@ class ASCIIAnimation {
     this.ctx = this.canvas.getContext('2d');
     this.imagePath = imagePath;
     this.image = new Image();
-    this.asciiChars = '@%#*+=-:. ';
+    this.asciiChars = '@%#*+=-:dqfi?¿¢ ';
     this.animationPhase = 0;
     this.frameCount = 0;
-    this.pixelSize = 8;
+    this.pixelSize = 13;
     this.asciiArray = [];
     this.asciiWriteProgress = 0;
     this.disappearProgress = 0;
@@ -21,8 +21,8 @@ class ASCIIAnimation {
       original: 120,       // 2 seconds original image
       asciiWrite: 300,     // 5 seconds ASCII writing
       ascii: 120,          // 2 seconds full ASCII
-      disappear: 180,      // 3 seconds disappearing
-      pixels: 240,         // 4 seconds pixel appearance
+      disappear: 100,      // 3 seconds disappearing
+      pixels: 300,         // 4 seconds pixel appearance
       backToHQ: 180        // 3 seconds back to high quality
     };
     

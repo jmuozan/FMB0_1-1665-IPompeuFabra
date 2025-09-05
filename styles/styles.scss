@@ -121,6 +121,19 @@
     &--img {
       height: 100%;
       width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      
+      // Canvas specific styles
+      &[id="ascii-canvas"] {
+        background-color: $light;
+        border: 2px solid rgba(133, 0, 204, 0.1);
+        transition: all 0.3s ease;
+        
+        &:hover {
+          box-shadow: 0 6px 30px rgba(133, 0, 204, 0.2);
+        }
+      }
     }
   }
 }
